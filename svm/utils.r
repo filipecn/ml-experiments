@@ -27,6 +27,7 @@ reducePCA <- function(X, info = 0.85) {
 	print(ncol(X))
 	pca = prcomp(X)
 	cuminfo = cumsum(pca$sdev/sum(pca$sdev))
+	plot(cuminfo)
 	i = max(length(which(cuminfo <= info)), 2)
 	print(i)
 	print(cuminfo)
@@ -64,6 +65,9 @@ run.experiment <- function(samples, tune.degree = c(1,2,3), tune.coef0 = c(0,1),
 	                  cost = tuned.svm$best.parameters["cost"],
 	                  gamma = tuned.svm$best.parameters["gamma"],
 	                  coef0 = tuned.svm$best.parameters["coef0"])
+	print('performance')
+	print(tuned.svm$best.performance)
+	print(tuned.svm$performance)
 	logMessage("Computing rho")
 	w = t(svm.model$coefs) %*% svm.model$SV
 	w.norm = sqrt(sum(w^2))
@@ -74,6 +78,13 @@ run.experiment <- function(samples, tune.degree = c(1,2,3), tune.coef0 = c(0,1),
 	gamma = tuned.svm$best.parameters["gamma"]
 	coef0 = tuned.svm$best.parameters["coef0"]
 	points = gamma * (samples$X %*% t(samples$X) + coef0)^degree
+	if(tune.kernel == 'radial') {
+		X = as.matrix(sample$X)
+ 		ids = 1:nrow(X)
+    points = outer(ids,ids, function(id1,id2) {
+                        exp(-gamma*rowSums((X[id1,] - X[id2,])^2)) } )
+		print(dim(points))
+	}
 	radius = computeRadius(points) / 2
 	print(degree)
 	print(coef0)
@@ -88,9 +99,10 @@ run.experiment <- function(samples, tune.degree = c(1,2,3), tune.coef0 = c(0,1),
 	logMessage("finished!")
 	ret = list()
 	ret$radius = radius
-	ret$n = n
+	ret$n = as.numeric(n)
 	ret$rho = rho
 	ret$nu = nu
+	ret$performance = tuned.svm$best.performance
 	ret
 }
 
@@ -100,10 +112,10 @@ gb.analyze <- function(n, nu, radius, rho) {
 	ret$n = 0
 	new.n = n
 	gb = ret$gb
-	while(gb > 0.01) {
-		new.n = new.n * 10
-		gb = nu + sqrt((4 / new.n) * ((radius / (rho^2)) * log(new.n*new.n) + log(1 / 0.01)))
-	}
-	ret$n = new.n
-	ret
+ 	while(gb > 0.01 && new.n < 10^30) {
+ 		new.n = new.n * 10
+ 		gb = nu + sqrt((4 / new.n) * ((radius / (rho^2)) * log(new.n*new.n) + log(1 / 0.01)))
+ 	}
+ 	ret$n = new.n
+ 	ret
 }

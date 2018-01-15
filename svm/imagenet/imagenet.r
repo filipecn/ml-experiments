@@ -1,13 +1,29 @@
 library("e1071")
 source("../utils.r")
+sink(file = 'results.txt')
 data = read.table('data.txt', header=TRUE)
 samples = list()
 samples$X = data[,1:ncol(data)-1]
 samples$Y = data[,ncol(data)]
 reduction = reducePCA(samples$X)
+# plot(reduction$x, col=samples$Y)
 samples$X = reduction$x
-# polynomial
-r = run.experiment(samples, c(1,2,3), c(0,1), c(10), 1, "polynomial")
+# linear
+logMessage('Linear')
+r = run.experiment(samples, c(1), c(0), c(10,100), 1, "linear")
 a = gb.analyze(r$n, r$nu, r$radius, r$rho)
 print(a$gb)
 print(a$n)
+# polynomial
+logMessage('Polynomial')
+r = run.experiment(samples, c(1,2,3), c(0,1), c(10,100), 1, "polynomial")
+a = gb.analyze(r$n, r$nu, r$radius, r$rho)
+print(a$gb)
+print(a$n)
+# gaussian
+logMessage('Gaussian')
+r = run.experiment(samples, c(1), c(0), c(10,100), 1, "radial")
+a = gb.analyze(r$n, r$nu, r$radius, r$rho)
+print(a$gb)
+print(a$n)
+sink()
